@@ -125,12 +125,11 @@ Para colocar o sistema em pleno funcionamento, o usuário precisa iniciar **MANU
 ## 📂 Estrutura do Projeto
 
 ```
-📦 Projeto
- ├── STM32
- ├── Aplicação C#
- ├── API REST
- ├── Inteligência Artificial
- ├── Frontend Web
+📦 ProjetoIntegrado
+ ├── ProjetointegradoVSCODE
+    └──ProjetoAPIeIA
+    └──ProjetoCsharp
+ ├── ProjetointegradoSTM
  └── README.md
 ```
 
