@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitoramento de Temperatura</title>
+    <!-- Lib para o gráfico -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        :root {
+            --bg-gradient: radial-gradient(circle at top left, #eef2ff 0%, #f2f4f7 40%, #f8fafc 100%);
+            --text-primary: #1e293b;
+            --text-muted: #64748b;
+            --text-faint: #94a3b8;
+            --header-gradient: linear-gradient(135deg, #1e293b 0%, #0f172a 60%, #1e1b4b 100%);
+            --header-text: #ffffff;
+            --header-subtext: #cbd5e1;
+            --card-bg: #ffffff;
+            --card-border: rgba(226, 232, 240, 0.8);
+            --card-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 8px 20px rgba(15, 23, 42, 0.06);
+            --card-shadow-hover: 0 4px 10px rgba(15, 23, 42, 0.08), 0 14px 28px rgba(15, 23, 42, 0.1);
+            --table-header-bg: #f8fafc;
+            --table-border: #eef1f5;
+            --table-hover: #f8fafc;
+            --grafico-grid: #eef1f5;
+            --toggle-bg: #ffffff;
+            --toggle-border: rgba(226, 232, 240, 0.8);
+            --toggle-icon: #1e293b;
+        }
+
+        body.dark {
+            --bg-gradient: radial-gradient(circle at top left, #1e1b4b 0%, #0f172a 40%, #020617 100%);
+            --text-primary: #e2e8f0;
+            --text-muted: #94a3b8;
+            --text-faint: #64748b;
+            --header-gradient: linear-gradient(135deg, #0b1120 0%, #020617 60%, #1e1b4b 100%);
+            --header-text: #f1f5f9;
+            --header-subtext: #94a3b8;
+            --card-bg: #131c2e;
+            --card-border: rgba(148, 163, 184, 0.12);
+            --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 20px rgba(0, 0, 0, 0.35);
+            --card-shadow-hover: 0 4px 10px rgba(0, 0, 0, 0.35), 0 14px 28px rgba(0, 0, 0, 0.4);
+            --table-header-bg: #0f172a;
+            --table-border: #1e293b;
+            --table-hover: #1a2436;
+            --grafico-grid: #1e293b;
+            --toggle-bg: #131c2e;
+            --toggle-border: rgba(148, 163, 184, 0.2);
+            --toggle-icon: #e2e8f0;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            min-height: 100vh;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        header {
+            background: var(--header-gradient);
+            color: var(--header-text);
+            padding: 40px 25px;
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.25);
+            position: relative;
+            overflow: hidden;
+            transition: background 0.3s ease;
+        }
+
+        header::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.25), transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.2), transparent 50%);
+            pointer-events: none;
+        }
+
+        header h1 {
+            margin-bottom: 8px;
+            font-weight: 800;
+            font-size: 32px;
+            letter-spacing: -0.5px;
+            position: relative;
+        }
+
+        header p {
+            color: var(--header-subtext);
+            font-weight: 400;
+            font-size: 15px;
+            position: relative;
+        }
+
+        .modo-toggle {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--toggle-bg);
+            border: 1px solid var(--toggle-border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s ease, background 0.3s ease;
+            z-index: 2;
+        }
+
+        .modo-toggle:hover {
+            transform: scale(1.08);
+        }
+
+        .modo-toggle svg {
+            width: 22px;
+            height: 22px;
+            stroke: var(--toggle-icon);
+            fill: none;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            transition: stroke 0.3s ease;
+        }
+
+        .icone-lua { display: none; }
+        body.dark .icone-lua { display: block; }
+        body.dark .icone-sol { display: none; }
+
+        .container {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px 40px;
+        }
+
+        /* Banner de Alerta Crítico */
+        .alerta-critico {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            color: white;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 18px;
+            display: none;
+            box-shadow: 0 8px 20px rgba(220, 38, 38, 0.35);
+            animation: piscar 1s infinite;
+        }
+
+        @keyframes piscar {
+            0% { opacity: 1; }
+            50% { opacity: 0.6; }
+            100% { opacity: 1; }
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .cards-secundarios {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--card-border);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.3s ease, border 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--card-shadow-hover);
+        }
+
+        .card h2 {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text-faint);
+            margin-bottom: 15px;
+        }
+
+        .temperatura, .estatistica-valor {
+            font-size: 38px;
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .classificacao, .tendencia-texto {
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .bolinha {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #9ca3af;
+            box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.15);
+        }
+
+        .status-texto {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .bom { color: #16a34a; }
+        .medio { color: #ca8a04; }
+        .ruim { color: #dc2626; }
+
+        body.dark .bom { color: #4ade80; }
+        body.dark .medio { color: #facc15; }
+        body.dark .ruim { color: #f87171; }
+
+        .bom-bg { background: #22c55e; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18); }
+        .medio-bg { background: #eab308; box-shadow: 0 0 0 4px rgba(234, 179, 8, 0.18); }
+        .ruim-bg { background: #ef4444; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18); }
+        .neutro-bg { background: #9ca3af; box-shadow: 0 0 0 4px rgba(148, 163, 184, 0.18); }
+
+        .grafico-container {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--card-border);
+            margin-bottom: 25px;
+            transition: background 0.3s ease, border 0.3s ease;
+        }
+
+        .grafico-container h2 {
+            margin-bottom: 20px;
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .grafico-legenda {
+            font-size: 13px;
+            color: var(--text-faint);
+            font-weight: 500;
+            margin-top: -12px;
+            margin-bottom: 18px;
+        }
+
+        .historico {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--card-border);
+            margin-bottom: 25px;
+            transition: background 0.3s ease, border 0.3s ease;
+        }
+
+        .historico h2 {
+            margin-bottom: 20px;
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 14px;
+            text-align: center;
+            border-bottom: 1px solid var(--table-border);
+        }
+
+        th {
+            background: var(--table-header-bg);
+            color: var(--text-muted);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 700;
+        }
+
+        tbody tr {
+            transition: background 0.15s ease;
+        }
+
+        tbody tr:hover {
+            background: var(--table-hover);
+        }
+
+        .badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .badge-bom { background: #dcfce7; color: #166534; }
+        .badge-medio { background: #fef9c3; color: #854d0e; }
+        .badge-ruim { background: #fee2e2; color: #991b1b; }
+
+        body.dark .badge-bom { background: rgba(34, 197, 94, 0.18); color: #4ade80; }
+        body.dark .badge-medio { background: rgba(234, 179, 8, 0.18); color: #facc15; }
+        body.dark .badge-ruim { background: rgba(239, 68, 68, 0.18); color: #f87171; }
+
+        .atualizacao {
+            margin-top: 15px;
+            text-align: right;
+            color: var(--text-faint);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .creditos-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 18px 25px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid var(--card-border);
+            text-align: center;
+            color: var(--text-muted);
+            font-weight: 500;
+            font-size: 14px;
+            transition: background 0.3s ease, border 0.3s ease;
+        }
+
+        .erro {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            display: none;
+            font-weight: 600;
+        }
+
+        body.dark .erro {
+            background: rgba(239, 68, 68, 0.15);
+            color: #f87171;
+        }
+
+        @media (max-width: 900px) {
+            .cards, .cards-secundarios {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 24px;
+            }
+
+            .modo-toggle {
+                top: 14px;
+                right: 14px;
+                width: 38px;
+                height: 38px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <button id="modoToggle" class="modo-toggle" title="Alternar modo claro/escuro" aria-label="Alternar modo claro/escuro">
+            <svg class="icone-sol" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="4"></circle>
+                <line x1="12" y1="2" x2="12" y2="4"></line>
+                <line x1="12" y1="20" x2="12" y2="22"></line>
+                <line x1="4.93" y1="4.93" x2="6.34" y2="6.34"></line>
+                <line x1="17.66" y1="17.66" x2="19.07" y2="19.07"></line>
+                <line x1="2" y1="12" x2="4" y2="12"></line>
+                <line x1="20" y1="12" x2="22" y2="12"></line>
+                <line x1="4.93" y1="19.07" x2="6.34" y2="17.66"></line>
+                <line x1="17.66" y1="6.34" x2="19.07" y2="4.93"></line>
+            </svg>
+            <svg class="icone-lua" viewBox="0 0 24 24">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+        </button>
+        <h1>Monitoramento de Temperatura</h1>
+        <p>Sistema de aquisição e classificação de temperatura</p>
+    </header>
+
+    <main class="container">
+
+        <div id="alertaCritico" class="alerta-critico">
+            ⚠️ ATENÇÃO: TEMPERATURA EM ESTADO CRÍTICO DETECTADA!
+        </div>
+
+        <div id="erro" class="erro">
+            Não foi possível obter os dados da API.
+        </div>
+
+        <!-- Cards Principais -->
+        <section class="cards">
+            <div class="card">
+                <h2>Temperatura Atual</h2>
+                <div class="temperatura">
+                    <span id="temperatura">--</span> °C
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Classificação da IA</h2>
+                <div id="classificacao" class="classificacao">
+                    --
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Estado do Sistema</h2>
+                <div class="status">
+                    <div id="bolinha" class="bolinha neutro-bg"></div>
+                    <div id="statusTexto" class="status-texto">
+                        Aguardando...
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cards Secundários (Estatísticas e Tendência) -->
+        <section class="cards-secundarios">
+            <div class="card">
+                <h2>Média</h2>
+                <div class="estatistica-valor"><span id="mediaTemp">--</span> °C</div>
+            </div>
+            <div class="card">
+                <h2>Máxima</h2>
+                <div class="estatistica-valor"><span id="maxTemp">--</span> °C</div>
+            </div>
+            <div class="card">
+                <h2>Mínima</h2>
+                <div class="estatistica-valor"><span id="minTemp">--</span> °C</div>
+            </div>
+            <div class="card">
+                <h2>Tendência</h2>
+                <div id="tendenciaTexto" class="tendencia-texto">--</div>
+            </div>
+        </section>
+
+        <!-- Gráfico de Evolução -->
+        <section class="grafico-container">
+            <h2>Evolução da Temperatura ao Longo do Tempo</h2>
+            <p class="grafico-legenda">Exibindo as últimas 10 atualizações</p>
+            <canvas id="graficoTemperatura" height="100"></canvas>
+        </section>
+
+        <!-- Histórico -->
+        <section class="historico">
+            <h2>Histórico das últimas medições</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Temperatura</th>
+                        <th>Classificação</th>
+                        <th>Horário</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaHistorico">
+                    <tr>
+                        <td colspan="3">
+                            Aguardando medições...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="atualizacao">
+                Última atualização:
+                <span id="ultimaAtualizacao">--</span>
+            </div>
+        </section>
+
+        <!-- Caixinha de Créditos -->
+        <footer class="creditos-card">
+            Desenvolvido por: Yan Gabardo &amp; Luis Paulo &nbsp;&nbsp;|&nbsp;&nbsp; 34-DS &nbsp;&nbsp;|&nbsp;&nbsp; 2026
+        </footer>
+
+    </main>
+
+    <script>
+        const API_URL = "http://localhost:3000/api/medicoes";
+
+        // Número máximo de pontos exibidos no gráfico.
+        // Ao ultrapassar esse limite, as atualizações mais antigas são descartadas.
+        const LIMITE_PONTOS_GRAFICO = 10;
+
+        // ---------- Modo escuro ----------
+        const botaoModo = document.getElementById('modoToggle');
+
+        function coresGrafico() {
+            const escuro = document.body.classList.contains('dark');
+            return {
+                grid: escuro ? '#1e293b' : '#eef1f5',
+                texto: escuro ? '#94a3b8' : '#64748b',
+                legenda: escuro ? '#e2e8f0' : '#334155'
+            };
+        }
+
+        function aplicarTemaNoGrafico() {
+            const cores = coresGrafico();
+            grafico.options.scales.y.grid.color = cores.grid;
+            grafico.options.scales.y.ticks.color = cores.texto;
+            grafico.options.scales.x.ticks.color = cores.texto;
+            grafico.options.plugins.legend.labels.color = cores.legenda;
+            grafico.update();
+        }
+
+        botaoModo.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            aplicarTemaNoGrafico();
+        });
+
+        // Configuração Inicial do Gráfico com Chart.js
+        const ctx = document.getElementById('graficoTemperatura').getContext('2d');
+
+        const gradiente = ctx.createLinearGradient(0, 0, 0, 300);
+        gradiente.addColorStop(0, 'rgba(99, 102, 241, 0.35)');
+        gradiente.addColorStop(1, 'rgba(99, 102, 241, 0)');
+
+        const grafico = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Temperatura (°C)',
+                    data: [],
+                    borderColor: '#4f46e5',
+                    backgroundColor: gradiente,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#4f46e5',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6,
+                    fill: true,
+                    tension: 0.35
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: {
+                    duration: 400
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            font: { family: 'Inter', weight: '600' },
+                            color: '#334155'
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: { color: '#eef1f5' },
+                        ticks: { font: { family: 'Inter' }, color: '#64748b' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { font: { family: 'Inter' }, color: '#64748b' }
+                    }
+                }
+            }
+        });
+
+        async function buscarDados() {
+            try {
+                const resposta = await fetch(API_URL);
+
+                if (!resposta.ok) {
+                    throw new Error("Erro na resposta da API");
+                }
+
+                const dados = await resposta.json();
+                atualizarInterface(dados);
+                document.getElementById("erro").style.display = "none";
+
+            } catch (erro) {
+                console.error("Erro:", erro);
+                document.getElementById("erro").style.display = "block";
+            }
+        }
+
+        function atualizarInterface(dados) {
+            const temperatura = dados.temperatura;
+            const classificacao = dados.classificacao;
+
+            document.getElementById("temperatura").textContent = Number(temperatura).toFixed(1);
+            document.getElementById("classificacao").textContent = classificacao;
+
+            atualizarStatus(classificacao);
+            atualizarHistorico(dados.historico);
+
+            if (dados.historico && dados.historico.length > 0) {
+                calcularEstatisticas(dados.historico);
+                detectarTendencia(dados.historico);
+                atualizarGrafico(dados.historico);
+            }
+
+            const agora = new Date();
+            document.getElementById("ultimaAtualizacao").textContent = agora.toLocaleTimeString("pt-BR");
+        }
+
+        function atualizarStatus(classificacao) {
+            const bolinha = document.getElementById("bolinha");
+            const texto = document.getElementById("statusTexto");
+            const classificacaoElemento = document.getElementById("classificacao");
+            const alertaCritico = document.getElementById("alertaCritico");
+
+            bolinha.className = "bolinha";
+            classificacaoElemento.className = "classificacao";
+
+            if (classificacao === "Bom") {
+                bolinha.classList.add("bom-bg");
+                texto.textContent = "Temperatura normal";
+                texto.className = "status-texto bom";
+                classificacaoElemento.classList.add("bom");
+                alertaCritico.style.display = "none";
+            } else if (classificacao === "Médio" || classificacao === "Medio") {
+                bolinha.classList.add("medio-bg");
+                texto.textContent = "Atenção";
+                texto.className = "status-texto medio";
+                classificacaoElemento.classList.add("medio");
+                alertaCritico.style.display = "none";
+            } else if (classificacao === "Ruim") {
+                bolinha.classList.add("ruim-bg");
+                texto.textContent = "Temperatura crítica";
+                texto.className = "status-texto ruim";
+                classificacaoElemento.classList.add("ruim");
+                
+                // Exibe alerta visual crítico
+                alertaCritico.style.display = "block";
+            } else {
+                bolinha.classList.add("neutro-bg");
+                texto.textContent = "Estado desconhecido";
+                alertaCritico.style.display = "none";
+            }
+        }
+
+        function calcularEstatisticas(historico) {
+            const temps = historico.map(m => Number(m.temperatura));
+            const soma = temps.reduce((acc, val) => acc + val, 0);
+            const media = soma / temps.length;
+            const max = Math.max(...temps);
+            const min = Math.min(...temps);
+
+            document.getElementById("mediaTemp").textContent = media.toFixed(1);
+            document.getElementById("maxTemp").textContent = max.toFixed(1);
+            document.getElementById("minTemp").textContent = min.toFixed(1);
+        }
+
+        function detectarTendencia(historico) {
+            const elementoTendencia = document.getElementById("tendenciaTexto");
+
+            if (historico.length < 2) {
+                elementoTendencia.textContent = "--";
+                return;
+            }
+
+            // Pega a medição mais recente e a imediatamente anterior
+            const atual = Number(historico[0].temperatura);
+            const anterior = Number(historico[1].temperatura);
+
+            if (atual > anterior) {
+                elementoTendencia.textContent = "↗️ Subindo";
+                elementoTendencia.style.color = "#dc2626";
+            } else if (atual < anterior) {
+                elementoTendencia.textContent = "↘️ Descendo";
+                elementoTendencia.style.color = "#16a34a";
+            } else {
+                elementoTendencia.textContent = "➡️ Estável";
+                elementoTendencia.style.color = "#ca8a04";
+            }
+        }
+
+        function atualizarGrafico(historico) {
+            // Mantém apenas as LIMITE_PONTOS_GRAFICO medições mais recentes.
+            // Como "historico" vem do mais novo para o mais antigo, pegar os
+            // primeiros N já descarta automaticamente as atualizações antigas.
+            const dadosLimitados = historico.slice(0, LIMITE_PONTOS_GRAFICO);
+
+            // Reverte para mostrar em ordem cronológica no gráfico (esquerda para direita)
+            const dadosInvertidos = [...dadosLimitados].reverse();
+
+            const rótulos = dadosInvertidos.map(m => m.horario);
+            const temperaturas = dadosInvertidos.map(m => Number(m.temperatura));
+
+            grafico.data.labels = rótulos;
+            grafico.data.datasets[0].data = temperaturas;
+            grafico.update();
+        }
+
+        function atualizarHistorico(historico) {
+            const tabela = document.getElementById("tabelaHistorico");
+
+            if (!historico || historico.length === 0) {
+                tabela.innerHTML = `
+                    <tr>
+                        <td colspan="3">Nenhuma medição recebida.</td>
+                    </tr>`;
+                return;
+            }
+
+            tabela.innerHTML = "";
+
+            historico.forEach(medicao => {
+                let classeBadge = "";
+
+                if (medicao.classificacao === "Bom") {
+                    classeBadge = "badge-bom";
+                } else if (medicao.classificacao === "Médio" || medicao.classificacao === "Medio") {
+                    classeBadge = "badge-medio";
+                } else if (medicao.classificacao === "Ruim") {
+                    classeBadge = "badge-ruim";
+                }
+
+                const linha = document.createElement("tr");
+
+                linha.innerHTML = `
+                    <td>${Number(medicao.temperatura).toFixed(1)} °C</td>
+                    <td>
+                        <span class="badge ${classeBadge}">
+                            ${medicao.classificacao}
+                        </span>
+                    </td>
+                    <td>${medicao.horario}</td>
+                `;
+
+                tabela.appendChild(linha);
+            });
+        }
+
+        buscarDados();
+        setInterval(buscarDados, 1000);
+    </script>
+</body>
+</html>
