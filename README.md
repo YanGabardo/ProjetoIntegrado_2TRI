@@ -140,7 +140,6 @@ Para colocar o sistema em pleno funcionamento, o usuário precisa iniciar **MANU
 
 | Campo | Informação |
 |-------|------------|
-| **Projeto** | Projeto Integrado |
 | **Professor(es)** | Ana Leticia G. Gonçalves, Daniel Albino Mosca e José Andery Carneiro |
 | **Curso** | Desenvolvimento de Sistemas |
 | **Ano** | 2026 |
