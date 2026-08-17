@@ -62,6 +62,25 @@ O sistema realiza a leitura de um sensor analógico através de um microcontrola
 - Indicação visual do estado do sistema
 
 ---
+## ⚙️ Módulo de Funcionamento
+
+O sistema é composto por três partes principais:
+
+- **STM32:** realiza a leitura do sensor/trimpot e envia os dados utilizando o protocolo proprietário através da USB.
+- **C#:** recebe os dados enviados pelo STM32, interpreta o protocolo, converte o valor do ADC para temperatura e envia a temperatura para a API.
+- **IA (Python):** realiza a classificação da temperatura utilizando o modelo K-NN.
+- **Server (Node.js):** recebe as temperaturas enviadas pelo C#, executa a IA e disponibiliza os dados para o sistema/painel.
+
+### ▶️ Ordem de inicialização
+
+Para que o sistema funcione corretamente, os três programas precisam ser iniciados **manualmente**.
+
+#### 1. Iniciar o Server
+
+Entre na pasta do projeto da API e execute:
+
+```bash
+node server.js
 
 ## 🛠️ Tecnologias Utilizadas
 
