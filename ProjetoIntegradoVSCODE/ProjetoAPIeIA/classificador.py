@@ -44,7 +44,6 @@ modelo = KNeighborsClassifier(n_neighbors=3)
 
 modelo.fit(X, y)
 
-print("IA treinada com sucesso!")
 print("Aguardando novas temperaturas...\n")
 
 

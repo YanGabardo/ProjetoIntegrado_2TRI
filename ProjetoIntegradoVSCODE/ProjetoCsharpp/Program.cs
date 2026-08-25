@@ -12,22 +12,21 @@ class Program
     private const int BaudRate = 115200;
 
     // Protocolo proprietário
-    private const byte PROTO_START = 0xAA;
-    private const byte PROTO_END = 0x55;
+    private const byte PROTO_START = 0xAA; //começo do pacote
+    private const byte PROTO_END = 0x55; //final do pacote
     private const byte PROTO_CMD_ADC = 0x01;
     private const byte PROTO_LEN_ADC = 0x02;
 
-    private static readonly HttpClient HttpClient = new HttpClient();
+    private static readonly HttpClient HttpClient = new HttpClient();//ultilazo para o manda temp para o node
 
     private static SerialPort? _porta;
     private static volatile bool _executando = true;
 
     static async Task Main()
     {
-        Console.WriteLine("=================================");
+        
         Console.WriteLine(" STM32 -> PROTOCOLO -> C# -> API");
-        Console.WriteLine("=================================\n");
-
+        
         string? nomePorta = ProcurarPortaCom();
 
         if (nomePorta == null)
@@ -52,7 +51,7 @@ class Program
         {
             _porta.Open();
         }
-        catch (Exception ex)
+        catch (Exception ex) //capter erro do try
         {
             Console.WriteLine($"Erro ao abrir a porta: {ex.Message}");
             return;
@@ -61,7 +60,7 @@ class Program
         Console.WriteLine("Porta conectada.");
         Console.WriteLine("Aguardando pacotes do STM32...\n");
 
-        _ = Task.Run(EscutarSaida);
+        _ = Task.Run(EscutarSaida); //verificando a saida
 
         while (_executando)
         {
@@ -71,7 +70,7 @@ class Program
 
                 if (pacote.Length == 7)
                 {
-                    await ProcessarPacote(pacote);
+                    await ProcessarPacote(pacote); //analisar o pacote
                 }
             }
             catch (TimeoutException)
@@ -172,7 +171,7 @@ class Program
         if (pacote[0] != PROTO_START)
         {
             Console.WriteLine("Erro: START inválido.");
-            return;
+            return;//se for AA ele incia
         }
 
         // --------------------------------------------------------
@@ -182,7 +181,7 @@ class Program
         if (pacote[1] != PROTO_CMD_ADC)
         {
             Console.WriteLine($"Erro: comando inválido: 0x{pacote[1]:X2}");
-            return;
+            return; //verifica a ordem do pacote, se for diferente de 01 ele da erro
         }
 
         // --------------------------------------------------------
@@ -192,7 +191,7 @@ class Program
         if (pacote[2] != PROTO_LEN_ADC)
         {
             Console.WriteLine($"Erro: tamanho inválido: {pacote[2]}");
-            return;
+            return; //verifica a ordem do pacote, se for diferente de 02 ele da erro    
         }
 
         // --------------------------------------------------------
@@ -203,7 +202,7 @@ class Program
         {
             Console.WriteLine("Erro: END inválido.");
             return;
-        }
+        } //verifica o final do pacote, se for diferente de 55 ele da erro
 
         // --------------------------------------------------------
         // Calcula checksum
@@ -215,7 +214,7 @@ class Program
                 pacote[2] ^
                 pacote[3] ^
                 pacote[4]
-            );
+            ); //calcula o checksum do pacote, fazendo um XOR entre os bytes do pacote
 
         // --------------------------------------------------------
         // Compara checksum recebido
@@ -311,19 +310,19 @@ class Program
                 new StringContent(
                     json,
                     Encoding.UTF8,
-                    "application/json"
+                    "application/json" //cria o conteudo do json para enviar para a api
                 );
 
             HttpResponseMessage resposta =
                 await HttpClient.PostAsync(
                     ApiUrl,
-                    content
+                    content //POST
                 );
 
             Console.WriteLine(
                 $"Status da API: " +
                 $"{(int)resposta.StatusCode} " +
-                $"{resposta.StatusCode}"
+                $"{resposta.StatusCode}" //mostra oq foi retornado da api, se foi 200 ou 400
             );
 
             string respostaApi =
@@ -335,7 +334,7 @@ class Program
 
             Console.WriteLine();
         }
-        catch (HttpRequestException ex)
+        catch (HttpRequestException ex) //captura o erro caso acontecer e mostra para o ususario
         {
             Console.WriteLine(
                 $"Erro ao conectar com a API: {ex.Message}"

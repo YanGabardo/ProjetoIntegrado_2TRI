@@ -6,33 +6,23 @@ const app = express();
 
 app.use(express.json());
 
-// ============================================================
-// CONFIGURAÇÕES
-// ============================================================
-
 const PORTA = 3000;
 
-// Guarda a última temperatura recebida
+// guarda a última temperatura recebida
 let temperaturaAtual = 0;
 
-// Guarda a última classificação
+// guarda a última classificação
 let classificacaoAtual = "Aguardando...";
 
-// Histórico das medições
+// histórico das medições
 let historico = [];
 
-// ============================================================
-// PAINEL HTML
-// ============================================================
-
+//html
 app.get("/painel", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// ============================================================
-// POST - C# ENVIA A TEMPERATURA
-// ============================================================
-
+//post - C# envia a temperatura
 app.post("/api/temperatura", (req, res) => {
 
     const temperatura = Number(req.body.temperatura);
@@ -79,10 +69,7 @@ app.post("/api/temperatura", (req, res) => {
     });
 });
 
-// ============================================================
-// POST - PYTHON ENVIA A CLASSIFICAÇÃO
-// ============================================================
-
+//post - C# envia a classificação manualmente
 app.post("/api/classificacao", (req, res) => {
 
     const temperatura = Number(req.body.temperatura);
@@ -97,21 +84,21 @@ app.post("/api/classificacao", (req, res) => {
     temperaturaAtual = temperatura;
     classificacaoAtual = classificacao;
 
-    // Adiciona ao histórico
+    // adiciona ao histórico
     historico.unshift({
         temperatura: temperatura,
         classificacao: classificacao,
         horario: new Date().toLocaleTimeString("pt-BR")
     });
 
-    // Mantém somente as últimas 20 medições
+    // mantém somente as últimas 20 medições
     if (historico.length > 20) {
         historico.pop();
     }
 
     console.log(
         `Classificação recebida: ${temperatura} °C -> ${classificacao}`
-    );
+    ); // loga a classificação recebida
 
     res.status(200).json({
         mensagem: "Classificação recebida",
@@ -120,10 +107,7 @@ app.post("/api/classificacao", (req, res) => {
     });
 });
 
-// ============================================================
-// GET - HTML CONSULTA OS DADOS
-// ============================================================
-
+//consulta - C# solicita a última medição
 app.get("/api/medicoes", (req, res) => {
 
     res.json({
@@ -134,10 +118,7 @@ app.get("/api/medicoes", (req, res) => {
 
 });
 
-// ============================================================
-// EXECUTA A IA AUTOMATICAMENTE
-// ============================================================
-
+//executa a IA em Python
 function executarIA(temperatura) {
 
     return new Promise((resolve, reject) => {
@@ -170,18 +151,14 @@ function executarIA(temperatura) {
     });
 }
 
-// ============================================================
-// INICIA A API
-// ============================================================
 
+//inicia o servidor
 app.listen(PORTA, () => {
 
-    console.log("======================================");
     console.log("       API DE MONITORAMENTO");
-    console.log("======================================");
+  
     console.log(`API rodando em http://localhost:${PORTA}`);
     console.log(`Endpoint: http://localhost:${PORTA}/api/medicoes`);
     console.log(`Painel: http://localhost:${PORTA}/painel`);
-    console.log("======================================");
-
+   
 });
